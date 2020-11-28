@@ -2,17 +2,24 @@ from typing import Optional, List
 from fastapi import FastAPI
 from pydantic import BaseModel, conlist
 
-import torch
+#import torch
 import pandas as pd
+
+from keystore import ZS_Redis_KeyStore
+
+app = FastAPI()
+R = ZS_Redis_KeyStore()
+
+
+
+n_minibatch = 8
 
 class ZS_Query(BaseModel):
     hypothesis_template : str
     candidate_labels : conlist(str, min_items=1)
     sequences : conlist(str, min_items=1)
 
-app = FastAPI()
-
-def load_model():
+def load_NLP_model():
     from transformers import pipeline
     
     model_name = "facebook/bart-large-mnli"
@@ -38,7 +45,7 @@ def chunks(lst, n):
 def read_root():
     return {"Hello": "World"}
 
-@app.post("/zs")
+#@app.post("/zs")
 def compute(q: ZS_Query):
 
     embedding = []
@@ -51,8 +58,7 @@ def compute(q: ZS_Query):
                 q.candidate_labels,
                 multi_class=True,
                 hypothesis_template=q.hypothesis_template,
-            )
-            
+            )        
 
         for item in outputs:
             record = {}
@@ -61,14 +67,34 @@ def compute(q: ZS_Query):
                 record[label] = score
             
             embedding.append(record)
-
     
     dx = pd.DataFrame(embedding)[q.candidate_labels]
     dx['sequence'] = q.sequences
 
     return dx.to_json()
 
+@app.post("/zs")
+def mock_compute(q: ZS_Query):
+    
+    embedding = []
+    
+    for chunk in chunks(q.sequences, n_minibatch):
+        print(chunk)
 
-n_minibatch = 8
-nlp = load_model()
-print("Model loaded")
+        # Mock data
+        import random
+        for sequence in chunk:
+            record = {}
+            for label in q.candidate_labels:
+                record[label] = random.random()
+            embedding.append(record)
+
+    dx = pd.DataFrame(embedding)[q.candidate_labels]
+    dx['sequence'] = q.sequences
+
+    return dx.to_json()
+
+#def cache_data(hypothesis_template, label
+
+#nlp = load_NLP_model()
+#print("Model loaded")

@@ -7,7 +7,7 @@ Install the requirements
 
 Start the service
 
-   uvicorn interface:app
+    uvicorn interface:app
 
 
 Test the service:
