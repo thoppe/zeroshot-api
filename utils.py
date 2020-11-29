@@ -35,7 +35,6 @@ def chunks(lst, n):
         yield lst[i : i + n]
 
 
-
 def tokenize(Q: List[SingleQuery]):
     """
     Takes a list of queries and encodes them as pytorch inputs ready for inference.
@@ -131,6 +130,7 @@ def compute_with_cache(Q: Union[SingleQuery, List[SingleQuery]]):
 
     return known_results
 
+
 ##################################################################################
 # Autoload model and redis cache
 ##################################################################################
@@ -142,5 +142,3 @@ model_name = "facebook/bart-large-mnli"
 
 tokenizer = load_NLP_tokenizer(model_name)
 model = load_NLP_model(model_name)
-
-

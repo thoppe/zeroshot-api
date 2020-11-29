@@ -1,21 +1,24 @@
 from fastapi import FastAPI
-from pydantic import conlist
 
-from data_models import SingleQuery
-from utils import compute_with_cache
+from data_models import SingleQuery, WebQuery
 from utils import chunks
+import utils
 
-from utils import redis_instance
+import pandas as pd
+import numpy as np
 
 app = FastAPI()
 __version__ = "0.0.1"
 
 
 @app.get("/")
-def read_root():
+def get_api_information():
+    """
+    Returns stats about the model and versions installed.
+    """
     import sys
 
-    module_list = ['transformers', 'tokenizers', 'redis', 'torch', 'numpy']
+    module_list = ["transformers", "tokenizers", "redis", "torch", "numpy"]
     versions = {
         "Zero-Shot-API-version": __version__,
     }
@@ -24,16 +27,50 @@ def read_root():
         versions[key] = sys.modules[key].__version__
 
     info = {
-        "python_versions" : versions,
-        "model_name" : utils.model_name,
-        "device" : utils.device,
+        "python_versions": versions,
+        "model_name": utils.model_name,
+        "device": utils.device,
     }
 
-    return versions
+    return info
+
 
 @app.get("/flush_cache")
 def flush_cache():
-    redis_instance.flushdb()
+    """
+    Flushes the redis cache (useful for testing).
+    """
+    utils.redis_instance.flushdb()
+
+
+def enforce_list(x):
+    return (
+        x if isinstance(x, list) else [x,]
+    )
+
+
+@app.get("/infer")
+def infer(q: WebQuery):
+
+    # Cast sequences and labels a list
+    sequences = enforce_list(q.sequences)
+    labels = enforce_list(q.labels)
+
+    # Build a set of model queries
+    Q = []
+    for label in q.labels:
+        for seq in q.sequences:
+            Q.append(SingleQuery(hypothesis=q.hypothesis, label=label, sequence=seq))
+
+    # TO DO: add batching
+    v = utils.compute_with_cache(Q)
+
+    # Reshape to match question labels
+    v = np.reshape(v, (len(q.labels), len(q.sequences)))
+    df = pd.DataFrame(index=q.sequences, columns=q.labels, data=v.T)
+
+    # Return as a nice dataframe
+    return df.to_json()
 
 
 if __name__ == "__main__":
