@@ -1,100 +1,62 @@
-from typing import Optional, List
 from fastapi import FastAPI
-from pydantic import BaseModel, conlist
+from pydantic import conlist
 
-#import torch
-import pandas as pd
+from data_models import SingleQuery
+from utils import compute_with_cache
+from utils import chunks
 
-from keystore import ZS_Redis_KeyStore
+from utils import redis_instance
 
 app = FastAPI()
-R = ZS_Redis_KeyStore()
-
-
-
-n_minibatch = 8
-
-class ZS_Query(BaseModel):
-    hypothesis_template : str
-    candidate_labels : conlist(str, min_items=1)
-    sequences : conlist(str, min_items=1)
-
-def load_NLP_model():
-    from transformers import pipeline
-    
-    model_name = "facebook/bart-large-mnli"
-    device_id = -1 # CPU only
-
-    nlp = pipeline(
-        "zero-shot-classification",
-        model=model_name,
-        device=device_id,
-    )
-
-    return nlp
-
-
-
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i : i + n]
+__version__ = "0.0.1"
 
 
 @app.get("/")
 def read_root():
-    return {"Hello": "World"}
+    import sys
 
-#@app.post("/zs")
-def compute(q: ZS_Query):
+    module_list = ['transformers', 'tokenizers', 'redis', 'torch', 'numpy']
+    versions = {
+        "Zero-Shot-API-version": __version__,
+    }
 
-    embedding = []
-    
-    for chunk in chunks(q.sequences, n_minibatch):
-        
-        with torch.no_grad():
-            outputs = nlp(
-                chunk,
-                q.candidate_labels,
-                multi_class=True,
-                hypothesis_template=q.hypothesis_template,
-            )        
+    for key in module_list:
+        versions[key] = sys.modules[key].__version__
 
-        for item in outputs:
-            record = {}
+    info = {
+        "python_versions" : versions,
+        "model_name" : utils.model_name,
+        "device" : utils.device,
+    }
 
-            for label, score in zip(item["labels"], item["scores"]):
-                record[label] = score
-            
-            embedding.append(record)
-    
-    dx = pd.DataFrame(embedding)[q.candidate_labels]
-    dx['sequence'] = q.sequences
+    return versions
 
-    return dx.to_json()
+@app.get("/flush_cache")
+def flush_cache():
+    redis_instance.flushdb()
 
-@app.post("/zs")
-def mock_compute(q: ZS_Query):
-    
-    embedding = []
-    
-    for chunk in chunks(q.sequences, n_minibatch):
-        print(chunk)
 
-        # Mock data
-        import random
-        for sequence in chunk:
-            record = {}
-            for label in q.candidate_labels:
-                record[label] = random.random()
-            embedding.append(record)
+if __name__ == "__main__":
 
-    dx = pd.DataFrame(embedding)[q.candidate_labels]
-    dx['sequence'] = q.sequences
+    # Flush the cache for testing
+    flush_cache()
 
-    return dx.to_json()
+    q1 = SingleQuery(
+        hypothesis="I like to go {}",
+        label="swimming",
+        sequence="I have a new swimsuit",
+    )
 
-#def cache_data(hypothesis_template, label
+    q2 = SingleQuery(
+        hypothesis="I like to go {}", label="swimming", sequence="The bank needs money",
+    )
 
-#nlp = load_NLP_model()
-#print("Model loaded")
+    q3 = SingleQuery(
+        hypothesis="I am oh so very {}", label="rich", sequence="I won the lottery.",
+    )
+
+    v = compute_with_cache([q1, q2])
+    print(v)
+
+    v = compute_with_cache([q1, q2, q3])
+    print(v)
