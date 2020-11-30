@@ -1,5 +1,5 @@
-# Zeroshot API
-[Zero-shot](https://joeddav.github.io/blog/2020/05/29/ZSL.html) inference with huggingface [transformers](https://huggingface.co/) using [fastapi](https://fastapi.tiangolo.com/) and caching with [Redis](https://github.com/andymccurdy/redis-py)_
+# Zero-shot API
+[Zero-shot](https://joeddav.github.io/blog/2020/05/29/ZSL.html) inference with huggingface [transformers](https://huggingface.co/) using [fastapi](https://fastapi.tiangolo.com/) and caching with [Redis](https://github.com/andymccurdy/redis-py)
 
 Install the requirements
 
