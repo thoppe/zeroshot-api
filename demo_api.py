@@ -1,6 +1,5 @@
 import requests
 import json
-from wasabi import msg
 import pandas as pd
 from contexttimer import Timer
 
@@ -29,7 +28,7 @@ with Timer() as timer0:
 
 # Check if everything worked
 if not r.ok:
-    msg.fail(f"Bad request status code: {r.status_code}")
+    print(f"Bad request status code: {r.status_code}")
 
     if r.status_code == 422:
         print(json.dumps(r.json(), indent=2))
@@ -53,6 +52,7 @@ with Timer() as timer2:
 df = pd.read_json(r.json())
 print(df)
 
-print("First request: ", timer0.elapsed)
-print("Next 20 requests: ", timer1.elapsed)
-print("Appened request: ", timer2.elapsed)
+print("\nTiming results:")
+print(f"First request    : {timer0.elapsed:0.3f} s")
+print(f"Next 20 requests : {timer1.elapsed:0.3f} s")
+print(f"Appened request  : {timer2.elapsed:0.3f} s")
