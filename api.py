@@ -30,6 +30,7 @@ def get_api_information():
         "python_versions": versions,
         "model_name": utils.model_name,
         "device": utils.device,
+        "cached_items" : get_cache_size(),
     }
 
     return info
@@ -41,6 +42,14 @@ def flush_cache():
     Flushes the redis cache (useful for testing).
     """
     utils.redis_instance.flushdb()
+
+
+@app.get("/count_cache")
+def get_cache_size() -> int:
+    """
+    Returns the number of items cached.
+    """
+    return utils.redis_instance.dbsize()
 
 
 def enforce_list(x):

@@ -30,7 +30,6 @@ def extract_valid_textlines(block):
     return [x.strip() for x in block.split("\n") if x.strip()]
 
 
-# @st.cache()
 def get_api_info():
     r = requests.get(zs_url + "/")
     return r.json()
@@ -49,15 +48,18 @@ def reset_cache():
 
 
 info = get_api_info()
+
 st.sidebar.markdown(f"model name: {info['model_name']}")
 st.sidebar.markdown(f"device: {info['device']}")
+st.sidebar.markdown(f"cached inferences: {info['cached_items']}")
 btn_reset = st.sidebar.button("Reset cache 💣")
+
+if btn_reset:
+    reset_cache()
+    info = get_api_info()
 
 labels = extract_valid_textlines(model_labels)
 sequences = extract_valid_textlines(model_sequences)
 
 results = infer(labels, sequences)
 st.table(results)
-
-if btn_reset:
-    reset_cache()

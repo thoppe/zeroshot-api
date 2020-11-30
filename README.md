@@ -7,7 +7,7 @@ Install the requirements
 
 Start the service
 
-    uvicorn interface:app
+    uvicorn api:app
 
 
 Test the service:
@@ -41,3 +41,9 @@ I have a new swimsuit.                0.809227  0.969889
 Today is a new day for everyone.      0.162844  0.186688
 I have money and I want to spend it.  0.972724  0.384538
 ```
+
+With the API running, you can experiment with a barebones streamlit interface:
+
+    streamlit run streamlit_app.py
+
+![](docs/streamlit_example.png)
