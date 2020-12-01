@@ -21,7 +21,7 @@ params = {
 
 # Clean the cache for testing
 requests.get(base_url + "/flush_cache")
-print(requests.get(base_url + "/count_cache").json())
+print(requests.get(base_url + "/dbsize").json())
 
 with Timer() as timer0:
     r = requests.get(base_url + "/infer", json=params)
@@ -37,7 +37,9 @@ if not r.ok:
 # Check that we can convert to a dataframe
 df = pd.read_json(r.json())
 print(df)
-print(requests.get(base_url + "/count_cache").json())
+exit()
+
+print(requests.get(base_url + "/dbsize").json())
 
 
 with Timer() as timer1:

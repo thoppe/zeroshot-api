@@ -19,8 +19,7 @@ import pandas as pd
 url = 'http://127.0.0.1:8000/infer'
 
 params = {
-    "hypothesis": "I like to go {}",
-    "labels": ["shopping", "swimming"],
+    "hypotheses": ["I like to go swimming", "I like to go shopping",],
     "sequences": [
         "I have a new swimsuit.",
         "Today is a new day for everyone.",
@@ -36,10 +35,11 @@ print(df)
 This gives
 
 ```
-                                      shopping  swimming
-I have a new swimsuit.                0.809227  0.969889
-Today is a new day for everyone.      0.162844  0.186688
-I have money and I want to spend it.  0.972724  0.384538
+
+                               I like to go swimming  I like to go shopping
+I have a new swimsuit.                      0.969889               0.809227
+Today is a new day for everyone.            0.186691               0.162844
+I have money and I want to spend it.        0.384539               0.972724
 ```
 
 With the API running, you can experiment with a barebones streamlit interface:
