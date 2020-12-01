@@ -11,8 +11,7 @@ print(json.dumps(r.json(), indent=2))
 
 
 params = {
-    "hypothesis": "I like to go {}",
-    "labels": ["shopping", "swimming"],
+    "hypotheses": ["I like to go swimming", "I like to go shopping",],
     "sequences": [
         "I have a new swimsuit.",
         "Today is a new day for everyone.",
@@ -46,7 +45,7 @@ with Timer() as timer1:
         r = requests.get(base_url + "/infer", json=params)
 
 # Now request a single additional column
-params["labels"].append("dancing")
+params["hypotheses"].append("I like to go dancing")
 
 with Timer() as timer2:
     r = requests.get(base_url + "/infer", json=params)

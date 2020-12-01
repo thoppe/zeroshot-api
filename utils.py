@@ -40,7 +40,7 @@ def tokenize(Q: List[SingleQuery]):
     """
 
     # Entailment questions are encoded as (sequence, hypothesis)
-    sequence_pairs = [(q.sequence, q.hypothesis.format(q.label)) for q in Q]
+    sequence_pairs = [(q.sequence, q.hypothesis) for q in Q]
 
     # Tokenize the results to prep for model
     inputs = tokenizer(
@@ -60,15 +60,14 @@ def tokenize(Q: List[SingleQuery]):
 
 def redis_encode(q: Union[SingleQuery, str]) -> str:
     """
-    Encodes the zero-shot question into a fully formed hypothesis by applying the
-    label. If input is already a string, ignore it and pass it on.
+    Encodes the zero-shot question into a fully formed hypothesis by applying 
+    the label. If input is already a string, ignore it and pass it on.
     """
 
     if isinstance(q, str):
         return q
 
-    full_question = q.hypothesis.format(q.label)
-    return f"{full_question} : {q.sequence}"
+    return f"{q.hypothesis} : {q.sequence}"
 
 
 def model_compute(Q: List[SingleQuery]) -> List[float]:
@@ -138,7 +137,9 @@ def compute_with_cache(Q: Union[SingleQuery, List[SingleQuery]]):
 # Autoload model and redis cache
 ##############################################################################
 
+
 redis_instance = redis.Redis()
+
 
 config = ConfigParser()
 config.read("config.ini")

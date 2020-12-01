@@ -2,22 +2,24 @@ import streamlit as st
 import requests
 import pandas as pd
 import json
+import itertools
 from configparser import ConfigParser
 
 config = ConfigParser()
 config.read("config.ini")
+
+n_max_upload_rows = 80
 
 zs_url = config.get("streamlit", "zs_url")
 n_minibatch = int(config.get("streamlit", "n_minibatch"))
 
 st.title("Zero-shot API with caching")
 
-model_hypothesis = st.text_input(
-    "Input the hypothesis using a {} as a label placeholder.", "I like to go {}.",
-)
-
-model_labels = st.text_area(
-    "Input the labels, one on each line.", "shopping\nswimming",
+model_hypotheses = st.text_area(
+    "Input the hypotheses, one on each line. To add a label suffix it with a semicolon.",
+    "I like to go shopping. ; shop \n"
+    "I like to go swimming. ; swim \n"
+    "The moon is bright today.",
 )
 
 
@@ -36,56 +38,68 @@ def get_api_info():
     return r.json()
 
 
-def infer(labels, sequences):
-    params = {"hypothesis": model_hypothesis, "labels": labels, "sequences": sequences}
+def infer(hypotheses, sequences, labels):
+    params = {"hypotheses": hypotheses, "sequences": sequences}
 
     results = {}
     progress_bar = st.progress(0)
-    n_total_items = len(labels) * len(sequences)
+    n_total_items = len(hypotheses) * len(sequences)
     n_current = 0
 
-    for label in labels:
-        results[label] = {}
+    for hyp in hypotheses:
+        results[hyp] = {}
 
         for chunk in chunks(sequences, n_minibatch):
             params = {
-                "hypothesis": model_hypothesis,
-                "labels": [label],
+                "hypotheses": [hyp],
                 "sequences": chunk,
             }
+
             r = requests.get(zs_url + "/infer", json=params)
             r = json.loads(r.json())
 
-            results[label].update(r[label])
+            results[hyp].update(r[hyp])
             n_current += len(chunk)
 
             progress_bar.progress(n_current / n_total_items)
 
     progress_bar.empty()
+
     df = pd.DataFrame(results)
+
+    # Make sure output matches input order
+    df = df[hypotheses].loc[sequences]
+
+    # Apply the labels if provided
+    df = df.rename(columns={k: (v if v else k) for k, v in zip(hypotheses, labels)})
+
     return df
 
 
 def reset_cache():
-    requests.get(zs_url + "/flush_cache")
+    requests.get(zs_url + "/flushdb")
 
 
 info = get_api_info()
 
-st.sidebar.markdown(f"model name: {info['model_name']}")
-st.sidebar.markdown(f"device: {info['device']}")
-st.sidebar.markdown(f"cached inferences: {info['cached_items']}")
+msg = f'''
+model name: {info['model_name']}
+device: {info['device']}
+cached inferences: {info['cached_items']}
+'''.strip()
+st.sidebar.text(msg)
 
 
 f_dataset = st.sidebar.file_uploader(
-    "Upload a CSV. Target column must be labeled 'text'"
+    "Upload a CSV. Target column must be labeled 'text'. "
+    f"Data is limited to {n_max_upload_rows} rows."
 )
 
 # Load the data from file if it exists
 if f_dataset is not None:
     # Example of loading a small dataset
     df = pd.read_csv(f_dataset)
-    df = df[["text"]][:80]
+    df = df[["text"]][:n_max_upload_rows]
     sequences = df["text"].fillna("").tolist()
 
 # Otherwise take direct user input
@@ -103,15 +117,24 @@ else:
 
     sequences = extract_valid_textlines(model_sequences)
 
-btn_reset = st.sidebar.button("Reset cache 💣")
+btn_reset = st.sidebar.button("💣 Reset cache")
 
 if btn_reset:
     reset_cache()
 
-labels = extract_valid_textlines(model_labels)
 
-results = infer(labels, sequences)
+# Extract the hypotheses/labels from the input, apply a numerical
+# label if missing from the input
+hypotheses_labels = extract_valid_textlines(model_hypotheses)
+hypotheses = [line.split(";")[0].strip() for line in hypotheses_labels]
 
-tableviz = results.style.background_gradient(cmap="Blues").format("{:0.3f}")
-# st.dataframe(tableviz)
+labels = [line.split(";")[1:] for line in hypotheses_labels]
+labels = [label[0] if label else None for label in labels]
+
+results = infer(hypotheses, sequences, labels)
+tableviz = results.style.background_gradient(cmap="Blues", axis=None).format("{:0.3f}")
+
 st.table(tableviz)
+
+st.sidebar.markdown("🌱 [Source](https://github.com/thoppe/zeroshot-api) by [@metasemantic](https://twitter.com/metasemantic?lang=en)")
+

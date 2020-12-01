@@ -1,14 +1,12 @@
 from pydantic import BaseModel
-from typing import List, Union
+from typing import List, Union, Optional
 
 
 class SingleQuery(BaseModel):
     hypothesis: str
-    label: str
     sequence: str
 
 
-class WebQuery(BaseModel):
-    hypothesis: str
-    labels: Union[str, List[str]]
+class MultiQuery(BaseModel):
+    hypotheses: Union[str, List[str]]
     sequences: Union[str, List[str]]
