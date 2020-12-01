@@ -4,17 +4,16 @@ import numpy as np
 
 from data_models import SingleQuery
 import redis
+from configparser import ConfigParser
 
-default_model_name = "facebook/bart-large-mnli"
 
-
-def load_NLP_tokenizer(model_name=default_model_name):
+def load_NLP_tokenizer(model_name):
     from transformers import AutoTokenizer
 
     return AutoTokenizer.from_pretrained(model_name)
 
 
-def load_NLP_model(model_name=default_model_name, device="cpu"):
+def load_NLP_model(model_name, device):
     from transformers import AutoModelForSequenceClassification
     from transformers import logging
 
@@ -49,6 +48,7 @@ def tokenize(Q: List[SingleQuery]):
         add_special_tokens=True,
         return_tensors="pt",
         padding=True,
+        max_length=max_token_length,
         truncation="only_first",
     )
 
@@ -91,11 +91,14 @@ def model_compute(Q: List[SingleQuery]) -> List[float]:
     entailment_id = 2
     logits = logits[..., [contradiction_id, entailment_id]]
 
+    # Detach the logits from the computation graph
+    logits = logits.detach().cpu().numpy()
+
     # Softmax over remaining logits for each sequence
     scores = np.exp(logits) / np.exp(logits).sum(-1, keepdims=True)
 
     # Return the value entailment
-    return scores[..., -1].detach().cpu().numpy()
+    return scores[..., -1]
 
 
 def compute_with_cache(Q: Union[SingleQuery, List[SingleQuery]]):
@@ -137,8 +140,12 @@ def compute_with_cache(Q: Union[SingleQuery, List[SingleQuery]]):
 
 redis_instance = redis.Redis()
 
-device = "cpu"
-model_name = "facebook/bart-large-mnli"
+config = ConfigParser()
+config.read("config.ini")
+
+model_name = config.get("api", "model_name")
+device = config.get("api", "device")
+max_token_length = int(config.get("api", "max_token_length"))
 
 tokenizer = load_NLP_tokenizer(model_name)
-model = load_NLP_model(model_name)
+model = load_NLP_model(model_name, device)

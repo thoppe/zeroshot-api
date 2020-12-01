@@ -30,7 +30,7 @@ def get_api_information():
         "python_versions": versions,
         "model_name": utils.model_name,
         "device": utils.device,
-        "cached_items" : get_cache_size(),
+        "cached_items": get_cache_size(),
     }
 
     return info

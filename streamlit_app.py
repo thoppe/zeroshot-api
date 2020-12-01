@@ -5,10 +5,10 @@ import json
 from configparser import ConfigParser
 
 config = ConfigParser()
-config.read('config.ini')
+config.read("config.ini")
 
-zs_url = config.get('streamlit', 'zs_url')
-n_minibatch = int(config.get('streamlit', 'n_minibatch'))
+zs_url = config.get("streamlit", "zs_url")
+n_minibatch = int(config.get("streamlit", "n_minibatch"))
 
 st.title("Zero-shot API with caching")
 
@@ -20,23 +20,13 @@ model_labels = st.text_area(
     "Input the labels, one on each line.", "shopping\nswimming",
 )
 
-model_sequences = st.text_area(
-    "Input the sequences to infer, one each line.",
-    "\n".join(
-        [
-            "I have a new swimsuit.",
-            "Today is a new day for everyone.",
-            "I have money and I want to spend it.",
-        ]
-    ),
-)
-
 
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
         yield lst[i : i + n]
-        
+
+
 def extract_valid_textlines(block):
     return [x.strip() for x in block.split("\n") if x.strip()]
 
@@ -51,12 +41,12 @@ def infer(labels, sequences):
 
     results = {}
     progress_bar = st.progress(0)
-    n_total_items = len(labels)*len(sequences)
+    n_total_items = len(labels) * len(sequences)
     n_current = 0
 
     for label in labels:
         results[label] = {}
-        
+
         for chunk in chunks(sequences, n_minibatch):
             params = {
                 "hypothesis": model_hypothesis,
@@ -69,8 +59,8 @@ def infer(labels, sequences):
             results[label].update(r[label])
             n_current += len(chunk)
 
-            progress_bar.progress(n_current/n_total_items)
-            
+            progress_bar.progress(n_current / n_total_items)
+
     progress_bar.empty()
     df = pd.DataFrame(results)
     return df
@@ -86,13 +76,31 @@ st.sidebar.markdown(f"model name: {info['model_name']}")
 st.sidebar.markdown(f"device: {info['device']}")
 st.sidebar.markdown(f"cached inferences: {info['cached_items']}")
 
-f_dataset = st.sidebar.file_uploader("Upload a CSV")
+
+f_dataset = st.sidebar.file_uploader(
+    "Upload a CSV. Target column must be labeled 'text'"
+)
+
+# Load the data from file if it exists
 if f_dataset is not None:
     # Example of loading a small dataset
     df = pd.read_csv(f_dataset)
-    df = df[['text']][:20]
-    sequences = df['text'].tolist()
+    df = df[["text"]][:80]
+    sequences = df["text"].fillna("").tolist()
+
+# Otherwise take direct user input
 else:
+    model_sequences = st.text_area(
+        "Input the sequences to infer, one each line.",
+        "\n".join(
+            [
+                "I have a new swimsuit.",
+                "Today is a new day for everyone.",
+                "I have money and I want to spend it.",
+            ]
+        ),
+    )
+
     sequences = extract_valid_textlines(model_sequences)
 
 btn_reset = st.sidebar.button("Reset cache 💣")
@@ -104,6 +112,6 @@ labels = extract_valid_textlines(model_labels)
 
 results = infer(labels, sequences)
 
-tableviz = results.style.background_gradient(
-    cmap="Blues",).format("{:0.3f}")
+tableviz = results.style.background_gradient(cmap="Blues").format("{:0.3f}")
+# st.dataframe(tableviz)
 st.table(tableviz)
