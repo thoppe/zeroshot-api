@@ -29,7 +29,7 @@ def measure_token_length(s: str):
 
 def compute_correlations(sequence, hypothesis_template, candidate_labels):
     Q = [
-        SingleQuery(hypothesis=hypothesis_template.format(label), sequence=doc)
+        SingleQuery(hypothesis=hypothesis_template.format(label), sequence=sequence)
         for label in candidate_labels
     ]
     tokens = utils.tokenize(Q)
@@ -54,9 +54,6 @@ def compute_correlations(sequence, hypothesis_template, candidate_labels):
     # (candidate_labels, token, layer, embedding)
     state = state.transpose(1, 2, 0, 3)
 
-    # Maybe cutoff some of the bottom layers?
-    # TO DO
-
     # Squish the layers and embeddings for correlation calculation
     # (candidate_labels, token, layer(+)embedding)
     state = state.reshape((*state.shape[:-2], -1))
@@ -64,7 +61,7 @@ def compute_correlations(sequence, hypothesis_template, candidate_labels):
     # Measure the length of the hypothesis and response
     hypothesis_prefix = hypothesis_template.split("{}")[0]
     n_hypothesis_prefix = measure_token_length(hypothesis_prefix)
-    n_response = measure_token_length(doc)
+    n_response = measure_token_length(sequence)
 
     df = pd.DataFrame()
 
@@ -89,9 +86,52 @@ def compute_correlations(sequence, hypothesis_template, candidate_labels):
 
         df[label] = C
 
-    df.insert(0, "words", token_chunks(doc))
+    df.insert(0, "word", token_chunks(sequence))
 
     return df
+
+
+def compress_frame(df):
+
+    BPE_space_char = "Ġ"
+    combine_chars = "'-"
+
+    final_df = None
+
+    for col in df.columns[1:]:
+        whole_word, vals = [], []
+        data = []
+
+        for word, val in zip(df.word, df[col]):
+
+            start_char = word[0]
+
+            if (start_char == BPE_space_char) or (
+                not start_char.isalpha() and start_char in combine_chars
+            ):
+
+                data.append(
+                    {"word": "".join(whole_word), col: np.average(vals),}
+                )
+                whole_word, vals = [], []
+
+            whole_word.append(word)
+            vals.append(val)
+
+        if whole_word:
+            data.append(
+                {"word": "".join(whole_word), col: np.average(vals),}
+            )
+
+        dx = pd.DataFrame(data)
+        dx["word"] = dx.word.str.strip(BPE_space_char)
+
+        if final_df is None:
+            final_df = dx
+        else:
+            final_df[col] = dx[col]
+
+    return final_df
 
 
 if __name__ == "__main__":
@@ -101,4 +141,6 @@ if __name__ == "__main__":
     candidate_labels = ["working out", "eating"]
 
     df = compute_correlations(doc, hypothesis_template, candidate_labels)
+    print(df)
+    df = compress_frame(df)
     print(df)
