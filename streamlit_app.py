@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 import json
-import itertools
 from configparser import ConfigParser
 
 config = ConfigParser()
