@@ -3,5 +3,6 @@ transformers>=3.4.0
 fastapi>=0.61.2
 redis>=3.5.3
 
+scipy
 pandas
 unidecode
