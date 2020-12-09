@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import unidecode
 
 from data_models import SingleQuery, MultiQuery
 import utils
@@ -7,7 +8,11 @@ import pandas as pd
 import numpy as np
 
 app = FastAPI()
-__version__ = "0.0.2"
+__version__ = "0.1.0"
+is_unidecode = True
+
+# Unidecode is stupid and doesn't use __version__
+unidecode.__version__ = f"{unidecode.version_info.major}.{unidecode.version_info.minor}.{unidecode.version_info.minor}"
 
 
 @app.get("/")
@@ -17,7 +22,14 @@ def get_api_information():
     """
     import sys
 
-    module_list = ["transformers", "tokenizers", "redis", "torch", "numpy"]
+    module_list = [
+        "transformers",
+        "tokenizers",
+        "redis",
+        "torch",
+        "numpy",
+        "unidecode",
+    ]
     versions = {
         "Zero-Shot-API-version": __version__,
     }
@@ -30,6 +42,7 @@ def get_api_information():
         "model_name": utils.model_name,
         "device": utils.device,
         "cached_items": dbsize(),
+        "unidecode_enable": is_unidecode,
     }
 
     return info
@@ -67,6 +80,11 @@ def infer(q: MultiQuery):
     # Cast sequences and labels a list
     sequences = enforce_list(q.sequences)
     hypotheses = enforce_list(q.hypotheses)
+
+    # Encode if needed
+    if is_unidecode:
+        sequences = map(unidecode.unidecode, sequences)
+        hypotheses = map(unidecode.unidecode, hypotheses)
 
     # Build a set of model queries
     Q = []

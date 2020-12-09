@@ -82,11 +82,11 @@ def reset_cache():
 
 info = get_api_info()
 
-msg = f'''
+msg = f"""
 model name: {info['model_name']}
 device: {info['device']}
 cached inferences: {info['cached_items']}
-'''.strip()
+""".strip()
 st.sidebar.text(msg)
 
 
@@ -136,5 +136,6 @@ tableviz = results.style.background_gradient(cmap="Blues", axis=None).format("{:
 
 st.table(tableviz)
 
-st.sidebar.markdown("🌱 [Source](https://github.com/thoppe/zeroshot-api) by [@metasemantic](https://twitter.com/metasemantic?lang=en)")
-
+st.sidebar.markdown(
+    "🌱 [Source](https://github.com/thoppe/zeroshot-api) by [@metasemantic](https://twitter.com/metasemantic?lang=en)"
+)
