@@ -83,8 +83,8 @@ def infer(q: MultiQuery):
 
     # Encode if needed
     if is_unidecode:
-        sequences = map(unidecode.unidecode, sequences)
-        hypotheses = map(unidecode.unidecode, hypotheses)
+        sequences = [unidecode.unidecode(x) for x in sequences]
+        hypotheses = [unidecode.unidecode(x) for x in hypotheses]
 
     # Build a set of model queries
     Q = []
@@ -93,6 +93,8 @@ def infer(q: MultiQuery):
             Q.append(SingleQuery(hypothesis=hyp, sequence=seq))
 
     v = utils.compute_with_cache(Q)
+    print(v)
+
 
     # Reshape to match question labels
     v = np.reshape(v, (len(q.hypotheses), len(q.sequences)))
