@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 import unidecode
 
-from data_models import SingleQuery, MultiQuery
+from data_models import SingleQuery, MultiQuery, ExplainerQuery
 import utils
+import explainer
 
 import pandas as pd
 import numpy as np
@@ -93,8 +94,6 @@ def infer(q: MultiQuery):
             Q.append(SingleQuery(hypothesis=hyp, sequence=seq))
 
     v = utils.compute_with_cache(Q)
-    print(v)
-
 
     # Reshape to match question labels
     v = np.reshape(v, (len(q.hypotheses), len(q.sequences)))
@@ -102,6 +101,26 @@ def infer(q: MultiQuery):
 
     # Return as a nice dataframe
     return df.to_json()
+
+
+@app.get("/explain")
+def explain(Q: ExplainerQuery):
+    """
+    Computes the correlation between each word of the sequence and
+    the "label" within the hypothesis. The correlation is over all the 
+    concatenated encoder attention heads and is tokenwise.
+
+    If the label contains multiple tokens, the average is taken.
+
+    Returns a dataframe where each row is a word (BPE tokens combined)
+    the first column is "word" with the text representation and each additional
+    column is the label and the correlation of that label against the input
+    sequence token.
+    """
+
+    df = explainer.compute_correlations(Q)
+    df = explainer.compress_frame(df)
+    return df
 
 
 if __name__ == "__main__":
@@ -126,3 +145,14 @@ if __name__ == "__main__":
     q = MultiQuery(hypotheses=hypotheses, sequences=sequences)
     v = infer(q)
     print(v)
+
+    doc = "I'm healthy, but stressed, kinda depressed but just started exercising and eating more veggies again."
+    hypothesis_template = "The respondant copes by {}."
+    candidate_labels = ["working out", "eating"]
+
+    Q = ExplainerQuery(
+        hypothesis_template=hypothesis_template, labels=candidate_labels, sequence=doc
+    )
+
+    df = explain(Q)
+    print(df)

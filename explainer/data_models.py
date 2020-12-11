@@ -16,4 +16,3 @@ class ExplainerQuery(BaseModel):
     hypothesis_template: str
     labels: List[str]
     sequence: str
-    

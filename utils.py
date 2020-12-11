@@ -125,7 +125,6 @@ def compute_with_cache(Q: Union[SingleQuery, List[SingleQuery]]):
         scores = model_compute(remaining_Q)
 
         # Cache the results
-        remaining_keys = keys[idx]
         R.mset({k: float(v) for k, v in zip(keys[idx], scores)})
 
         known_results[idx] = scores

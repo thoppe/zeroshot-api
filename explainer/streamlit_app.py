@@ -15,12 +15,8 @@ n_minibatch = int(config.get("streamlit", "n_minibatch"))
 
 st.title("Zero-shot API explainer")
 
-candidate_labels = st.text_area(
-    "Input the labels",
-    "working out\n"
-    "eating\n"
-)
-candidate_labels 
+candidate_labels = st.text_area("Input the labels", "working out\n" "eating\n")
+candidate_labels
 
 
 foobar = '''

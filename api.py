@@ -93,8 +93,6 @@ def infer(q: MultiQuery):
             Q.append(SingleQuery(hypothesis=hyp, sequence=seq))
 
     v = utils.compute_with_cache(Q)
-    print(v)
-
 
     # Reshape to match question labels
     v = np.reshape(v, (len(q.hypotheses), len(q.sequences)))

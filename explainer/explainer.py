@@ -3,11 +3,16 @@ import torch
 import numpy as np
 import pandas as pd
 
-from data_models import SingleQuery
+from data_models import SingleQuery, ExplainerQuery
 from scipy.spatial.distance import cdist
 
 
-def token_chunks(s: str, s2=None, add_special_tokens=False):
+def _token_chunks(s: str, s2=None, add_special_tokens=False):
+    """
+    Helper function to tokenize without special tokens and returning
+    only a numpy array for speed.
+    """
+
     text = s if s2 is None else (s, s2)
 
     tokens = utils.tokenizer(
@@ -20,21 +25,38 @@ def token_chunks(s: str, s2=None, add_special_tokens=False):
     return utils.tokenizer.convert_ids_to_tokens(tokens["input_ids"][0])
 
 
-def measure_token_length(s: str):
+def _measure_token_length(s: str):
     """
     Measures the length of an input sequence in terms of tokens
     """
-    return len(token_chunks(s))
+    return len(_token_chunks(s))
 
 
-def compute_correlations(sequence, hypothesis_template, candidate_labels):
+def compute_correlations(query: ExplainerQuery):
+    """
+    Computes the correlation between each word of the sequence and
+    the "label" within the hypothesis. The correlation is over all the 
+    concatenated encoder attention heads and is tokenwise.
+
+    If the label contains multiple tokens, the average is taken.
+
+    Returns a dataframe where each row is a token, the first column is
+    "word" with the text representation of the token and each additional
+    column is the label and the correlation of that label against the input
+    sequence token.
+    """
+
+    hypothesis_template = query.hypothesis_template
+    candidate_labels = query.labels
+    sequence = query.sequence
+
     Q = [
         SingleQuery(hypothesis=hypothesis_template.format(label), sequence=sequence)
         for label in candidate_labels
     ]
     tokens = utils.tokenize(Q)
 
-    # Run the forward pass, saving the encoder hidden states
+    # Run a single forward pass, saving the encoder hidden states
     with torch.no_grad():
         outputs = utils.model(
             input_ids=tokens["input_ids"],
@@ -60,15 +82,15 @@ def compute_correlations(sequence, hypothesis_template, candidate_labels):
 
     # Measure the length of the hypothesis and response
     hypothesis_prefix = hypothesis_template.split("{}")[0]
-    n_hypothesis_prefix = measure_token_length(hypothesis_prefix)
-    n_response = measure_token_length(sequence)
+    n_hypothesis_prefix = _measure_token_length(hypothesis_prefix)
+    n_response = _measure_token_length(sequence)
 
     df = pd.DataFrame()
 
     for label, V in zip(candidate_labels, state):
 
         # Measure where each label via tokens starts and ends
-        n_label = measure_token_length(label)
+        n_label = _measure_token_length(label)
         n_label_start = n_response + n_hypothesis_prefix + 2
         n_label_end = n_label_start + n_label
 
@@ -86,12 +108,16 @@ def compute_correlations(sequence, hypothesis_template, candidate_labels):
 
         df[label] = C
 
-    df.insert(0, "word", token_chunks(sequence))
+    df.insert(0, "word", _token_chunks(sequence))
 
     return df
 
 
 def compress_frame(df):
+    """
+    Cleans the dataframe from compute_correlations by combining byte-pair
+    encodings (BPE) back into full words. This may fail if not using BART.
+    """
 
     BPE_space_char = "Ġ"
     combine_chars = "'-"
@@ -140,7 +166,11 @@ if __name__ == "__main__":
     hypothesis_template = "The respondant copes by {}."
     candidate_labels = ["working out", "eating"]
 
-    df = compute_correlations(doc, hypothesis_template, candidate_labels)
+    Q = ExplainerQuery(
+        hypothesis_template=hypothesis_template, labels=candidate_labels, sequence=doc
+    )
+
+    df = compute_correlations(Q)
     print(df)
     df = compress_frame(df)
     print(df)
