@@ -4,6 +4,9 @@ import json
 import requests
 from configparser import ConfigParser
 
+import numpy as np
+from annotation_component import annotated_text
+
 config = ConfigParser()
 config.read("config.ini")
 
@@ -13,6 +16,7 @@ zs_url = config.get("streamlit", "zs_url")
 n_minibatch = int(config.get("streamlit", "n_minibatch"))
 
 st.title("Zero-shot API explainer")
+st.write("Sample text")
 
 sequence = st.text_input(
     "Input the sequence:",
@@ -46,9 +50,18 @@ def explain(hypothesis_template, sequence, labels):
 # Clean up the text in the labels
 labels = extract_valid_textlines(labels)
 
-
 df = explain(hypothesis_template, sequence, labels)
-st.write(df)
+
+for label in labels:
+    st.markdown(f"## {label}")
+
+    annotated_text(df, "word", label, cmap_name="PuRd")
+
+
+tableviz = df.style.background_gradient(cmap="PuRd", axis=None).format(
+    "{:0.3f}", subset=labels
+)
+st.table(tableviz)
 
 
 leftover_code = """
