@@ -118,9 +118,13 @@ def explain(Q: ExplainerQuery):
     sequence token.
     """
 
-    df = explainer.compute_correlations(Q)
+    df, scores = explainer.compute_correlations(Q)
     df = explainer.compress_frame(df)
-    return df
+
+    return {
+        "correlations": df.to_json(),
+        "scores": scores.tolist(),
+    }
 
 
 if __name__ == "__main__":
@@ -154,5 +158,6 @@ if __name__ == "__main__":
         hypothesis_template=hypothesis_template, labels=candidate_labels, sequence=doc
     )
 
-    df = explain(Q)
-    print(df)
+    results = explain(Q)
+    print(results["correlations"])
+    print(results["scores"])

@@ -40,10 +40,12 @@ def compute_correlations(query: ExplainerQuery):
 
     If the label contains multiple tokens, the average is taken.
 
-    Returns a dataframe where each row is a token, the first column is
+    Returns a dataframe and list:
+       - The dataframe where each row is a token, the first column is
     "word" with the text representation of the token and each additional
     column is the label and the correlation of that label against the input
     sequence token.
+       - The list are scores coming from each label
     """
 
     hypothesis_template = query.hypothesis_template
@@ -65,7 +67,19 @@ def compute_correlations(query: ExplainerQuery):
             return_dict=True,
         )
 
-    # Keep only the encoder hidden states
+    # Get the logits from the output
+    logits = outputs["logits"].detach().cpu().numpy()
+
+    # Keep only the entailment and contradiction logits
+    contradiction_id = 0
+    entailment_id = 2
+    logits = logits[..., [contradiction_id, entailment_id]]
+
+    # Softmax over remaining logits for each sequence
+    scores = np.exp(logits) / np.exp(logits).sum(-1, keepdims=True)
+    scores = scores[..., -1]
+
+    # Computer correlation from encoder hidden states
     layers = outputs["encoder_hidden_states"]
 
     # Remove from the GPU and convert to a numpy array
@@ -110,7 +124,7 @@ def compute_correlations(query: ExplainerQuery):
 
     df.insert(0, "word", _token_chunks(sequence))
 
-    return df
+    return df, scores
 
 
 def compress_frame(df):
@@ -164,13 +178,14 @@ if __name__ == "__main__":
 
     doc = "I'm healthy, but stressed, kinda depressed but just started exercising and eating more veggies again."
     hypothesis_template = "The respondant copes by {}."
-    candidate_labels = ["working out", "eating"]
+    candidate_labels = ["working out", "eating", "sleeping"]
 
     Q = ExplainerQuery(
         hypothesis_template=hypothesis_template, labels=candidate_labels, sequence=doc
     )
 
-    df = compute_correlations(Q)
+    df, scores = compute_correlations(Q)
     print(df)
+    print(scores)
     df = compress_frame(df)
     print(df)

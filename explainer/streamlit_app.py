@@ -41,19 +41,19 @@ def explain(hypothesis_template, sequence, labels):
         "labels": labels,
     }
 
-    r = requests.get(zs_url + "/explain", json=params)
-    df = pd.DataFrame(r.json())
+    r = requests.get(zs_url + "/explain", json=params).json()
+    df = pd.DataFrame(json.loads(r["correlations"]))
 
-    return df
+    return df, r["scores"]
 
 
 # Clean up the text in the labels
 labels = extract_valid_textlines(labels)
 
-df = explain(hypothesis_template, sequence, labels)
+df, scores = explain(hypothesis_template, sequence, labels)
 
-for label in labels:
-    st.markdown(f"## {label}")
+for label, score in zip(labels, scores):
+    st.markdown(f"## {label} ({score:0.3f})")
 
     annotated_text(df, "word", label, cmap_name="PuRd")
 
