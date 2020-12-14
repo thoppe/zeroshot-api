@@ -44,13 +44,20 @@ I have money and I want to spend it.        0.384539               0.972724
 
 With the API running, you can experiment with a barebones streamlit interface:
 
-    streamlit run streamlit_app.py
+    streamlit run streamlit_app_infer.py
 
-![](docs/streamlit_example.png)
+![](docs/streamlit_example_explain.png)
+
+
+You can also experiment with the explainer:
+
+    streamlit run streamlit_app_explainer.py
+
+![](docs/streamlit_example_infer.png)
+
 
 
 ### Roadmap
 
 + Streamlit component explainer should match format of larger app
-+ Explainer should integrate into main app / code
 + Incorporate MALLET LDA as preseed topics?

@@ -10,3 +10,9 @@ class SingleQuery(BaseModel):
 class MultiQuery(BaseModel):
     hypotheses: Union[str, List[str]]
     sequences: Union[str, List[str]]
+
+
+class ExplainerQuery(BaseModel):
+    hypothesis_template: str
+    labels: List[str]
+    sequence: str
