@@ -46,15 +46,13 @@ With the API running, you can experiment with a barebones streamlit interface:
 
     streamlit run streamlit_app_infer.py
 
-![](docs/streamlit_example_explain.png)
-
+![](docs/streamlit_example_infer.png)
 
 You can also experiment with the explainer:
 
     streamlit run streamlit_app_explainer.py
 
-![](docs/streamlit_example_infer.png)
-
+![](docs/streamlit_example_explain.png)
 
 
 ### Roadmap
