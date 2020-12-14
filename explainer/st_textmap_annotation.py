@@ -36,8 +36,6 @@ def annotation(body, background, color, **style):
 
     return span(style=main_style)(body)
 
-    # return span(style=main_style)(body, span(style=substyle) )
-
 
 def annotated_text(
     df,
@@ -72,8 +70,5 @@ def annotated_text(
         contrast_color = "#%02x%02x%02x" % (contrast[0], contrast[1], contrast[2])
 
         out(annotation(body=text + " ", color=contrast_color, background=hex_color))
-
-        # out(annotation(body=text, color=contrast_color, background=hex_color))
-        # out(annotation(body=' '))
 
     streamlit.components.v1.html(str(out), **kwargs)

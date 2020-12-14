@@ -5,7 +5,7 @@ import requests
 from configparser import ConfigParser
 
 import numpy as np
-from annotation_component import annotated_text
+from st_textmap_annotation import annotated_text
 
 config = ConfigParser()
 config.read("config.ini")
@@ -62,15 +62,3 @@ tableviz = df.style.background_gradient(cmap="PuRd", axis=None).format(
     "{:0.3f}", subset=labels
 )
 st.table(tableviz)
-
-
-leftover_code = """
-results = infer(hypotheses, sequences, labels)
-tableviz = results.style.background_gradient(cmap="Blues", axis=None).format("{:0.3f}")
-
-st.table(tableviz)
-
-st.sidebar.markdown(
-    "🌱 [Source](https://github.com/thoppe/zeroshot-api) by [@metasemantic](https://twitter.com/metasemantic?lang=en)"
-)
-"""
