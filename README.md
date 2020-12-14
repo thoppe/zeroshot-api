@@ -47,3 +47,10 @@ With the API running, you can experiment with a barebones streamlit interface:
     streamlit run streamlit_app.py
 
 ![](docs/streamlit_example.png)
+
+
+### Roadmap
+
++ Streamlit component explainer should match format of larger app
++ Explainer should integrate into main app / code
++ Incorporate MALLET LDA as preseed topics?
