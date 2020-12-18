@@ -185,7 +185,9 @@ if __name__ == "__main__":
     )
 
     df, scores = compute_correlations(Q)
-    print(df)
+    #print(df)
     print(scores)
     df = compress_frame(df)
-    print(df)
+    #print(df)
+
+    print(df.loc[[10, 12]])
