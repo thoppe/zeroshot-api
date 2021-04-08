@@ -96,6 +96,10 @@ def model_compute(Q: List[SingleQuery]) -> List[float]:
     # Softmax over remaining logits for each sequence
     scores = np.exp(logits) / np.exp(logits).sum(-1, keepdims=True)
 
+    del outputs
+    del tokens
+    torch.cuda.empty_cache()
+
     # Return the value entailment
     return scores[..., -1]
 

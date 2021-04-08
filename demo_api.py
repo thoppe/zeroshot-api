@@ -19,6 +19,8 @@ params = {
     ],
 }
 
+print(params)
+
 # Clean the cache for testing
 requests.get(base_url + "/flush_cache")
 print(requests.get(base_url + "/dbsize").json())
