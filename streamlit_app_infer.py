@@ -20,7 +20,6 @@ model_hypotheses = st.text_area(
 )
 
 
-
 def extract_valid_textlines(block):
     return [x.strip() for x in block.split("\n") if x.strip()]
 
@@ -41,7 +40,6 @@ def infer(hypotheses, sequences, labels):
     for hyp in hypotheses:
         results[hyp] = {}
 
-
         params = {
             "hypotheses": [hyp],
             "sequences": sequences,
@@ -52,7 +50,7 @@ def infer(hypotheses, sequences, labels):
 
         results[hyp].update(r[hyp])
         n_current += len(sequences)
-        
+
         progress_bar.progress(n_current / n_total_items)
 
     progress_bar.empty()
