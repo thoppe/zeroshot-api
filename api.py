@@ -3,14 +3,15 @@ import unidecode
 
 from data_models import SingleQuery, MultiQuery, ExplainerQuery
 import utils
-import explainer
 
 import pandas as pd
 import numpy as np
 
 app = FastAPI()
-__version__ = "0.1.0"
+__version__ = "0.2.0"
+
 is_unidecode = True
+batch_size = 8
 
 # Unidecode is stupid and doesn't use __version__
 unidecode.__version__ = f"{unidecode.version_info.major}.{unidecode.version_info.minor}.{unidecode.version_info.minor}"
@@ -43,7 +44,11 @@ def get_api_information():
         "model_name": utils.model_name,
         "device": utils.device,
         "cached_items": dbsize(),
-        "unidecode_enable": is_unidecode,
+
+        "infer_arguments" : {
+            "unidecode_enable": is_unidecode,
+            "batch_size" : batch_size,
+        }
     }
 
     return info
@@ -53,6 +58,14 @@ def get_api_information():
 def flushdb() -> None:
     """
     Flush the redis cache (useful for testing).
+    """
+    utils.redis_instance.flushdb()
+
+
+@app.get("/configure")
+def configure(key: str, value) -> None:
+    """
+    Sets a configuration argument.
     """
     utils.redis_instance.flushdb()
 
