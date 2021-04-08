@@ -6,12 +6,11 @@ import utils
 
 import pandas as pd
 import numpy as np
+import uvicorn  # Import needed for version number
 
 app = FastAPI()
 __version__ = "0.2.0"
 
-is_unidecode = True
-batch_size = 8
 
 # Unidecode is stupid and doesn't use __version__
 unidecode.__version__ = f"{unidecode.version_info.major}.{unidecode.version_info.minor}.{unidecode.version_info.minor}"
@@ -28,9 +27,12 @@ def get_api_information():
         "transformers",
         "tokenizers",
         "redis",
+        "fastapi",
+        "uvicorn",
         "torch",
         "numpy",
         "unidecode",
+        "pandas",
     ]
     versions = {
         "Zero-Shot-API-version": __version__,
@@ -44,11 +46,7 @@ def get_api_information():
         "model_name": utils.model_name,
         "device": utils.device,
         "cached_items": dbsize(),
-
-        "infer_arguments" : {
-            "unidecode_enable": is_unidecode,
-            "batch_size" : batch_size,
-        }
+        "infer_arguments": utils.infer_arguments,
     }
 
     return info
@@ -67,7 +65,8 @@ def configure(key: str, value) -> None:
     """
     Sets a configuration argument.
     """
-    utils.redis_instance.flushdb()
+    assert key in utils.infer_arguments
+    utils.infer_arguments[key] = value
 
 
 @app.get("/dbsize")
@@ -96,7 +95,7 @@ def infer(q: MultiQuery):
     hypotheses = enforce_list(q.hypotheses)
 
     # Encode if needed
-    if is_unidecode:
+    if utils.infer_arguments["is_unidecode"]:
         sequences = [unidecode.unidecode(x) for x in sequences]
         hypotheses = [unidecode.unidecode(x) for x in hypotheses]
 
@@ -116,31 +115,8 @@ def infer(q: MultiQuery):
     return df.to_json()
 
 
-@app.get("/explain")
-def explain(Q: ExplainerQuery):
-    """
-    Computes the correlation between each word of the sequence and
-    the "label" within the hypothesis. The correlation is over all the 
-    concatenated encoder attention heads and is tokenwise.
-
-    If the label contains multiple tokens, the average is taken.
-
-    Returns a dataframe where each row is a word (BPE tokens combined)
-    the first column is "word" with the text representation and each additional
-    column is the label and the correlation of that label against the input
-    sequence token.
-    """
-
-    df, scores = explainer.compute_correlations(Q)
-    df = explainer.compress_frame(df)
-
-    return {
-        "correlations": df.to_json(),
-        "scores": scores.tolist(),
-    }
-
-
 if __name__ == "__main__":
+    import json
 
     # Flush the cache for testing
     flushdb()
@@ -155,9 +131,11 @@ if __name__ == "__main__":
     ]
 
     q = MultiQuery(hypotheses=hypotheses, sequences=sequences)
-    v = infer(q)
-    print(v)
 
+    info = get_api_information()
+    configure("batch_size", 2)
+
+    # Start another computation
     sequences.append("I won the lottery")
     q = MultiQuery(hypotheses=hypotheses, sequences=sequences)
     v = infer(q)
@@ -167,6 +145,10 @@ if __name__ == "__main__":
     hypothesis_template = "The respondant copes by {}."
     candidate_labels = ["working out", "eating"]
 
+    v = infer(q)
+    print(v)
+
+    """
     Q = ExplainerQuery(
         hypothesis_template=hypothesis_template, labels=candidate_labels, sequence=doc
     )
@@ -174,3 +156,4 @@ if __name__ == "__main__":
     results = explain(Q)
     print(results["correlations"])
     print(results["scores"])
+    """

@@ -10,8 +10,6 @@ config.read("config.ini")
 n_max_upload_rows = 80
 
 zs_url = config.get("streamlit", "zs_url")
-n_minibatch = int(config.get("streamlit", "n_minibatch"))
-
 st.title("Zero-shot API with caching")
 
 model_hypotheses = st.text_area(
@@ -21,11 +19,6 @@ model_hypotheses = st.text_area(
     "The moon is bright today.",
 )
 
-
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i : i + n]
 
 
 def extract_valid_textlines(block):
@@ -48,19 +41,19 @@ def infer(hypotheses, sequences, labels):
     for hyp in hypotheses:
         results[hyp] = {}
 
-        for chunk in chunks(sequences, n_minibatch):
-            params = {
-                "hypotheses": [hyp],
-                "sequences": chunk,
-            }
 
-            r = requests.get(zs_url + "/infer", json=params)
-            r = json.loads(r.json())
+        params = {
+            "hypotheses": [hyp],
+            "sequences": sequences,
+        }
 
-            results[hyp].update(r[hyp])
-            n_current += len(chunk)
+        r = requests.get(zs_url + "/infer", json=params)
+        r = json.loads(r.json())
 
-            progress_bar.progress(n_current / n_total_items)
+        results[hyp].update(r[hyp])
+        n_current += len(sequences)
+        
+        progress_bar.progress(n_current / n_total_items)
 
     progress_bar.empty()
 

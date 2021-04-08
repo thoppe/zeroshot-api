@@ -1,5 +1,5 @@
 # Zero-shot API
-[Zero-shot](https://joeddav.github.io/blog/2020/05/29/ZSL.html) inference with huggingface [transformers](https://huggingface.co/) using [fastapi](https://fastapi.tiangolo.com/) and caching with [Redis](https://github.com/andymccurdy/redis-py)
+[Zero-shot](https://joeddav.github.io/blog/2020/05/29/ZSL.html) inference with huggingface [transformers](https://huggingface.co/) using [FastAPI](https://fastapi.tiangolo.com/) and caching with [Redis](https://github.com/andymccurdy/redis-py)
 
 Install the requirements
 
@@ -47,6 +47,10 @@ With the API running, you can experiment with a barebones streamlit interface:
     streamlit run streamlit_app_infer.py
 
 ![](docs/streamlit_example_infer.png)
+
+----------------------------------------------------------------------------
+
+_experimental work-in-progress currently not functional_
 
 You can also experiment with the explainer:
 

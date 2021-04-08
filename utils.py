@@ -106,6 +106,8 @@ def model_compute(Q: List[SingleQuery]) -> List[float]:
 
 def compute_with_cache(Q: Union[SingleQuery, List[SingleQuery]]):
 
+    batch_size = infer_arguments["batch_size"]
+
     # Force input to be a list
     if not isinstance(Q, List):
         Q = list(Q)
@@ -122,16 +124,19 @@ def compute_with_cache(Q: Union[SingleQuery, List[SingleQuery]]):
 
     # Compute the missing results if needed
     if idx.any():
-        print(f"Computing {idx.sum()} values")
 
-        # Get tokens for remaining results
-        remaining_Q = np.array(Q)[idx]
-        scores = model_compute(remaining_Q)
+        # Chunk the results on batch_size
+        for batch_idx in chunks(np.where(idx)[0], infer_arguments["batch_size"]):
+            print(f"Infering {len(batch_idx)} values")
 
-        # Cache the results
-        R.mset({k: float(v) for k, v in zip(keys[idx], scores)})
+            # Get tokens for remaining results
+            remaining_Q = np.array(Q)[batch_idx]
+            scores = model_compute(remaining_Q)
 
-        known_results[idx] = scores
+            # Cache the results
+            R.mset({k: float(v) for k, v in zip(keys[batch_idx], scores)})
+
+            known_results[batch_idx] = scores
 
     return known_results
 
@@ -143,13 +148,30 @@ def compute_with_cache(Q: Union[SingleQuery, List[SingleQuery]]):
 
 redis_instance = redis.Redis()
 
-
 config = ConfigParser()
 config.read("config.ini")
 
-model_name = config.get("api", "model_name")
-device = config.get("api", "device")
+model_name = config.get("model", "model_name")
+device = config.get("model", "device")
 max_token_length = int(config.get("api", "max_token_length"))
 
 tokenizer = load_NLP_tokenizer(model_name)
 model = load_NLP_model(model_name, device)
+
+# Default arguments for inference
+
+infer_arguments = {
+    "is_unidecode": True,
+    "batch_size": 8,
+    "max_token_length": 512,
+    "model_name": "facebook/bart-large-mnli",
+}
+
+# Update them from the config
+if "api" in config:
+    infer_arguments.update(dict(config["api"]))
+
+
+# Force typing
+infer_arguments["batch_size"] = int(infer_arguments["batch_size"])
+infer_arguments["max_token_length"] = int(infer_arguments["max_token_length"])

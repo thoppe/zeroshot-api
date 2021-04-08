@@ -9,7 +9,6 @@ base_url = "http://127.0.0.1:8000"
 r = requests.get(base_url + "/")
 print(json.dumps(r.json(), indent=2))
 
-
 params = {
     "hypotheses": ["I like to go swimming", "I like to go shopping",],
     "sequences": [
@@ -39,17 +38,16 @@ if not r.ok:
 # Check that we can convert to a dataframe
 df = pd.read_json(r.json())
 print(df)
-exit()
 
 print(requests.get(base_url + "/dbsize").json())
-
 
 with Timer() as timer1:
     for n in range(20):
         r = requests.get(base_url + "/infer", json=params)
 
-# Now request a single additional column
-params["hypotheses"].append("I like to go dancing")
+# Now request a bunch of extra non-sense columns
+for n in range(100):
+    params["hypotheses"].append(f"I like to go dancing {n}")
 
 with Timer() as timer2:
     r = requests.get(base_url + "/infer", json=params)
